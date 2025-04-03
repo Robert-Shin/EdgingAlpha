@@ -11,7 +11,7 @@ class MyXchangeClient(xchange_client.XChangeClient):
         super().__init__(host, username, password)
         self.signatures = []
         self.uns_tstmps = []
-        self.transaction_history = {}
+        self.transaction_history = {"AKAV": {}, "MKJ": {}, "AKIM": {}, "DLR": {}, "APT": {}}
 
     async def bot_handle_cancel_response(self, order_id: str, success: bool, error: Optional[str]) -> None:
         order = self.open_orders[order_id]
@@ -26,8 +26,10 @@ class MyXchangeClient(xchange_client.XChangeClient):
 
     async def bot_handle_trade_msg(self, symbol: str, price: int, qty: int):
         #print("Trade has occurred")
-        #print(symbol, price, qty)
         pass
+        #self.transaction_history[symbol][timestamp] = (price, qty)
+
+
 
     async def bot_handle_book_update(self, symbol: str) -> None:
         pass
@@ -74,7 +76,7 @@ class MyXchangeClient(xchange_client.XChangeClient):
             # Not sure what you would do with unstructured data....
 
             pass
-    """
+    
     async def calc_akav_nav(self):
         stocks = {}
         for security, book in self.order_books.items():
@@ -91,7 +93,7 @@ class MyXchangeClient(xchange_client.XChangeClient):
                     total += nav 
             return total
         return 0
-    """
+    
     async def find_etf_arb(self):
         while True:
             stocks = {}
@@ -105,7 +107,7 @@ class MyXchangeClient(xchange_client.XChangeClient):
             if ("AKAV" in stocks) and ('MKJ' in stocks) and ('APT' in stocks) and ('DLR' in stocks):
                 if stocks["AKAV"][0][0] > (stocks["MKJ"][1][0] + stocks["APT"][1][0] + stocks["DLR"][1][0] + 5):
                     qty = min(stocks["AKAV"][0][1], stocks["MKJ"][1][1], stocks["APT"][1][1], stocks["DLR"][1][1], 40)
-                    print(f'arb found, value = {qty*(stocks["AKAV"][0][0] - (stocks["MKJ"][1][0] + stocks["APT"][1][0] + stocks["DLR"][1][0] + 5))}')
+                    print(f'arb found, value = {qty*(stocks["AKAV"][0][0] - (stocks["MKJ"][1][0] + stocks["APT"][1][0] + stocks["DLR"][1][0]))-5}')
                     print(f'AKAV BB = {stocks["AKAV"][0]}')
                     print(f'MKJ BO = {stocks["MKJ"][1]}')
                     print(f'APT BO = {stocks["APT"][1]}')
@@ -130,7 +132,7 @@ class MyXchangeClient(xchange_client.XChangeClient):
 
                 elif stocks["AKAV"][1][0] < (stocks["MKJ"][0][0] + stocks["APT"][0][0] + stocks["DLR"][0][0] - 5):
                     qty = min(stocks["AKAV"][1][1], stocks["MKJ"][0][1], stocks["APT"][0][1], stocks["DLR"][0][1], 40)
-                    print(f'arb found, value = {qty*((stocks["MKJ"][0][0] + stocks["APT"][0][0] + stocks["DLR"][0][0] - 5) - stocks["AKAV"][1][0])}')
+                    print(f'arb found, value = {qty*((stocks["MKJ"][0][0] + stocks["APT"][0][0] + stocks["DLR"][0][0]) - stocks["AKAV"][1][0])-5}')
                     print(f'AKAV BO = {stocks["AKAV"][1]}')
                     print(f'MKJ BB = {stocks["MKJ"][0]}')
                     print(f'APT BB = {stocks["APT"][0]}')
@@ -149,7 +151,7 @@ class MyXchangeClient(xchange_client.XChangeClient):
                     await self.place_order("APT", qty, xchange_client.Side.SELL)
                     await self.place_order("DLR", qty, xchange_client.Side.SELL)
                     await self.place_order("AKAV", qty, xchange_client.Side.BUY)
-                    await self.place_swap_order('toAKAV', qty)
+                    await self.place_swap_order('fromAKAV', qty)
                     print("my positions:", self.positions)
                 else:
                     print("Currently no arb")
@@ -183,7 +185,7 @@ class MyXchangeClient(xchange_client.XChangeClient):
         await asyncio.sleep(5)
         print("attempting to trade")
         await self.find_etf_arb()
-        #await self.track_mkj("MKJ")
+        #await self.track_stock("MKJ")
         """
         await self.place_order("APT",3, xchange_client.Side.BUY, 5)
         await self.place_order("APT",3, xchange_client.Side.SELL, 7)
