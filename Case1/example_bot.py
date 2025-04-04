@@ -95,70 +95,67 @@ class MyXchangeClient(xchange_client.XChangeClient):
         return 0
     
     async def find_etf_arb(self):
-        while True:
-            stocks = {}
-            for security, book in self.order_books.items():
-                    try:
-                        highest_bid = max((px,qty) for px,qty in book.bids.items() if qty != 0)
-                        lowest_ask = min((px,qty) for px,qty in book.asks.items() if qty != 0)
-                        stocks[security] = [highest_bid, lowest_ask]
-                    except:
-                        print(f"No spread for {security}")
-            if ("AKAV" in stocks) and ('MKJ' in stocks) and ('APT' in stocks) and ('DLR' in stocks):
-                if stocks["AKAV"][0][0] > (stocks["MKJ"][1][0] + stocks["APT"][1][0] + stocks["DLR"][1][0] + 5):
-                    qty = min(stocks["AKAV"][0][1], stocks["MKJ"][1][1], stocks["APT"][1][1], stocks["DLR"][1][1], 40)
-                    print(f'arb found, value = {qty*(stocks["AKAV"][0][0] - (stocks["MKJ"][1][0] + stocks["APT"][1][0] + stocks["DLR"][1][0]))-5}')
-                    print(f'AKAV BB = {stocks["AKAV"][0]}')
-                    print(f'MKJ BO = {stocks["MKJ"][1]}')
-                    print(f'APT BO = {stocks["APT"][1]}')
-                    print(f'DLR BO = {stocks["DLR"][1]}')
+        stocks = {}
+        for security, book in self.order_books.items():
+            try:
+                highest_bid = max((px,qty) for px,qty in book.bids.items() if qty != 0)
+                lowest_ask = min((px,qty) for px,qty in book.asks.items() if qty != 0)
+                stocks[security] = [highest_bid, lowest_ask]
+            except:
+                print(f"No spread for {security}")
+        if ("AKAV" in stocks) and ('MKJ' in stocks) and ('APT' in stocks) and ('DLR' in stocks):
+            if stocks["AKAV"][0][0] > (stocks["MKJ"][1][0] + stocks["APT"][1][0] + stocks["DLR"][1][0] + 5): 
+                qty = min(stocks["AKAV"][0][1], stocks["MKJ"][1][1], stocks["APT"][1][1], stocks["DLR"][1][1], max_size)         
+                print(f'arb found, value = {qty*(stocks["AKAV"][0][0] - (stocks["MKJ"][1][0] + stocks["APT"][1][0] + stocks["DLR"][1][0]))-5}')
+                print(f'AKAV BB = {stocks["AKAV"][0]}')
+                print(f'MKJ BO = {stocks["MKJ"][1]}')
+                print(f'APT BO = {stocks["APT"][1]}')
+                print(f'DLR BO = {stocks["DLR"][1]}')
 
-                    #execute trades
-                    """
-                    await self.place_order("MKJ", qty, xchange_client.Side.BUY, stocks["MKJ"][1][0])
-                    await self.place_order("APT", qty, xchange_client.Side.BUY, stocks["APT"][1][0])
-                    await self.place_order("DLR", qty, xchange_client.Side.BUY, stocks["DLR"][1][0])
-                    await self.place_order("AKAV", qty, xchange_client.Side.SELL, stocks["AKAV"][0][0])
-                    await self.place_swap_order('toAKAV', qty)
-                    print("my positions:", self.positions)
-                    """
-                    await self.place_order("MKJ", qty, xchange_client.Side.BUY)
-                    await self.place_order("APT", qty, xchange_client.Side.BUY)
-                    await self.place_order("DLR", qty, xchange_client.Side.BUY)
-                    await self.place_order("AKAV", qty, xchange_client.Side.SELL)
-                    await self.place_swap_order('toAKAV', qty)
-                    print("my positions:", self.positions)
+                #execute trades
+                """
+                await self.place_order("MKJ", qty, xchange_client.Side.BUY, stocks["MKJ"][1][0])
+                await self.place_order("APT", qty, xchange_client.Side.BUY, stocks["APT"][1][0])
+                await self.place_order("DLR", qty, xchange_client.Side.BUY, stocks["DLR"][1][0])
+                await self.place_order("AKAV", qty, xchange_client.Side.SELL, stocks["AKAV"][0][0])
+                await self.place_swap_order('toAKAV', qty)
+                print("my positions:", self.positions)
+                """
+                await self.place_order("MKJ", qty, xchange_client.Side.BUY)
+                await self.place_order("APT", qty, xchange_client.Side.BUY)
+                await self.place_order("DLR", qty, xchange_client.Side.BUY)
+                await self.place_order("AKAV", qty, xchange_client.Side.SELL)
+                await self.place_swap_order('toAKAV', qty)
+                print("my positions:", self.positions)
+                
+            if stocks["AKAV"][1][0] < (stocks["MKJ"][0][0] + stocks["APT"][0][0] + stocks["DLR"][0][0] - 5):
+                qty = min(stocks["AKAV"][1][1], stocks["MKJ"][0][1], stocks["APT"][0][1], stocks["DLR"][0][1], max_size) 
+                print(f'arb found, value = {qty*((stocks["MKJ"][0][0] + stocks["APT"][0][0] + stocks["DLR"][0][0]) - stocks["AKAV"][1][0])-5}')
+                print(f'AKAV BO = {stocks["AKAV"][1]}')
+                print(f'MKJ BB = {stocks["MKJ"][0]}')
+                print(f'APT BB = {stocks["APT"][0]}')
+                print(f'DLR BB = {stocks["DLR"][0]}')
 
-
-                elif stocks["AKAV"][1][0] < (stocks["MKJ"][0][0] + stocks["APT"][0][0] + stocks["DLR"][0][0] - 5):
-                    qty = min(stocks["AKAV"][1][1], stocks["MKJ"][0][1], stocks["APT"][0][1], stocks["DLR"][0][1], 40)
-                    print(f'arb found, value = {qty*((stocks["MKJ"][0][0] + stocks["APT"][0][0] + stocks["DLR"][0][0]) - stocks["AKAV"][1][0])-5}')
-                    print(f'AKAV BO = {stocks["AKAV"][1]}')
-                    print(f'MKJ BB = {stocks["MKJ"][0]}')
-                    print(f'APT BB = {stocks["APT"][0]}')
-                    print(f'DLR BB = {stocks["DLR"][0]}')
-
-                    #execute trades
-                    """
-                    await self.place_order("MKJ", qty, xchange_client.Side.SELL, stocks["MKJ"][0][0])
-                    await self.place_order("APT", qty, xchange_client.Side.SELL, stocks["APT"][0][0])
-                    await self.place_order("DLR", qty, xchange_client.Side.SELL, stocks["DLR"][0][0])
-                    await self.place_order("AKAV", qty, xchange_client.Side.BUY, stocks["AKAV"][1][0])
-                    await self.place_swap_order('toAKAV', qty)
-                    print("my positions:", self.positions)
-                    """
-                    await self.place_order("MKJ", qty, xchange_client.Side.SELL)
-                    await self.place_order("APT", qty, xchange_client.Side.SELL)
-                    await self.place_order("DLR", qty, xchange_client.Side.SELL)
-                    await self.place_order("AKAV", qty, xchange_client.Side.BUY)
-                    await self.place_swap_order('fromAKAV', qty)
-                    print("my positions:", self.positions)
-                else:
-                    print("Currently no arb")
+                #execute trades
+                """
+                await self.place_order("MKJ", qty, xchange_client.Side.SELL, stocks["MKJ"][0][0])
+                await self.place_order("APT", qty, xchange_client.Side.SELL, stocks["APT"][0][0])
+                await self.place_order("DLR", qty, xchange_client.Side.SELL, stocks["DLR"][0][0])
+                await self.place_order("AKAV", qty, xchange_client.Side.BUY, stocks["AKAV"][1][0])
+                await self.place_swap_order('toAKAV', qty)
+                print("my positions:", self.positions)
+                """
+                await self.place_order("MKJ", qty, xchange_client.Side.SELL)
+                await self.place_order("APT", qty, xchange_client.Side.SELL)
+                await self.place_order("DLR", qty, xchange_client.Side.SELL)
+                await self.place_order("AKAV", qty, xchange_client.Side.BUY)
+                await self.place_swap_order('fromAKAV', qty)
+                print("my positions:", self.positions)
             else:
-                print("Currently no offers")
-            await self.liquidate_assets()
-            await asyncio.sleep(1)
+                print("Currently no arb")
+        else:
+            print("Currently no offers")
+        #await self.liquidate_assets()
 
     async def liquidate_assets(self):
         print("Selling Positions")
