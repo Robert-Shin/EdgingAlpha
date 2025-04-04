@@ -158,17 +158,20 @@ class MyXchangeClient(xchange_client.XChangeClient):
         #await self.liquidate_assets()
 
     async def liquidate_assets(self):
-        print("Selling Positions")
         for asset in self.positions:
             qty  = self.positions[asset]
-            if asset != "cash" and qty != 0:
-                if qty > 0:
-                    qty  = min(40, qty)
-                    await self.place_order(asset, qty, xchange_client.Side.SELL)
-                else:
-                    qty = -qty
-                    qty = min(40, qty)
-                    await self.place_order(asset, qty, xchange_client.Side.BUY)
+            if asset != "cash":
+                while qty != 0:
+                    print("Selling Positions")
+                    if qty > 0:
+                        qty  = min(40, qty)
+                        await self.place_order(asset, qty, xchange_client.Side.SELL)
+                        qty = self.positions[asset] - qty
+                    else:
+                        qty = -qty
+                        qty = min(40, qty)
+                        await self.place_order(asset, qty, xchange_client.Side.BUY)
+                        qty = self.positions[asset] + qty
 
     async def track_stock(self, ticker):
         while True:
@@ -180,9 +183,12 @@ class MyXchangeClient(xchange_client.XChangeClient):
 
     async def trade(self):
         await asyncio.sleep(5)
-        print("attempting to trade")
-        await self.find_etf_arb()
-        #await self.track_stock("MKJ")
+        while True:
+            await asyncio.sleep(1)
+            print("attempting to trade")
+            await self.find_etf_arb(30)
+            await self.liquidate_assets()
+            #await self.track_stock("MKJ")
         """
         await self.place_order("APT",3, xchange_client.Side.BUY, 5)
         await self.place_order("APT",3, xchange_client.Side.SELL, 7)
