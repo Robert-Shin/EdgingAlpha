@@ -94,7 +94,7 @@ class MyXchangeClient(xchange_client.XChangeClient):
             return total
         return 0
     
-    async def find_etf_arb(self):
+    async def find_etf_arb(self, max_size):
         stocks = {}
         for security, book in self.order_books.items():
             try:
